@@ -1,25 +1,44 @@
+import { useContext } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthContext } from "./contexts/AuthContext";
+import Dashboard from "./pages/Dashboard";
+import Books from "./pages/Books";
+import Members from "./pages/Members";
+import Transactions from "./pages/Transactions";
+import BookDetails from "./pages/BookDetails";
+import MemberDetails from "./pages/MemberDetails";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Layout from "./components/Layout";
+import NotFound from "./pages/NotFound";
 import React from "react";
 
-// import EditMember from "./pages/EditMember";
-import "./index.css";
-
-// Protected route component
-
 function App() {
+  const { isAuthenticated } = useContext(AuthContext);
+
   return (
-    <div>
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h1 className="text-3xl font-bold text-blue-600 mb-4">
-            Tailwind CSS Test
-          </h1>
-          <p className="text-gray-600">This is a test of Tailwind C</p>
-        </div>
-      </div>
-    </div>
+    <Routes>
+      <Route
+        path="/login"
+        element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/register"
+        element={!isAuthenticated ? <Register /> : <Navigate to="/" />}
+      />
+
+      <Route element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/books" element={<Books />} />
+        <Route path="/books/:id" element={<BookDetails />} />
+        <Route path="/members" element={<Members />} />
+        <Route path="/members/:id" element={<MemberDetails />} />
+        <Route path="/transactions" element={<Transactions />} />
+      </Route>
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
-
-// Layout component for authenticated routes
 
 export default App;
