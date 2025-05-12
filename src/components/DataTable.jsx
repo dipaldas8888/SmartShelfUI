@@ -7,6 +7,7 @@ const DataTable = ({ columns, data, linkPath, onEdit, onDelete, actions }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
@@ -67,21 +68,27 @@ const DataTable = ({ columns, data, linkPath, onEdit, onDelete, actions }) => {
                       View
                     </Link>
                   )}
-                  {onEdit && (
-                    <button
-                      onClick={() => onEdit(item)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Edit
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      onClick={() => onDelete(item.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                  {actions ? (
+                    actions(item)
+                  ) : (
+                    <>
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(item)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={() => onDelete(item.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </td>

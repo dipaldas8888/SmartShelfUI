@@ -14,9 +14,12 @@ const Transactions = () => {
   const [error, setError] = useState(null);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [currentTransaction, setCurrentTransaction] = useState(null);
   const [returnId, setReturnId] = useState(null);
   const [alert, setAlert] = useState({ type: "", message: "" });
   const [filter, setFilter] = useState("all"); // 'all', 'borrowed', 'returned', 'overdue'
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -35,6 +38,11 @@ const Transactions = () => {
     }
   };
 
+  const handleViewDetails = (transaction) => {
+    setCurrentTransaction(transaction);
+    setShowDetailsModal(true);
+  };
+
   const handleReturn = (transactionId) => {
     setReturnId(transactionId);
     setShowReturnModal(true);
@@ -42,18 +50,25 @@ const Transactions = () => {
 
   const handleReturnSubmit = async () => {
     try {
-      const response = await transactionsApi.return({ id: returnId });
+      setIsSubmitting(true);
+      // Call the updated API method with just the ID
+      await transactionsApi.return(returnId);
 
-      setTransactions(
-        transactions.map((transaction) =>
-          transaction.id === returnId ? response.data : transaction
-        )
-      );
+      // After successful return, refresh the data
+      await fetchData();
+
       setAlert({ type: "success", message: "Book returned successfully" });
       setShowReturnModal(false);
     } catch (err) {
       console.error("Error returning book:", err);
-      setAlert({ type: "error", message: "Failed to return book" });
+      setAlert({
+        type: "error",
+        message:
+          err.response?.data?.message ||
+          "Failed to return book. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -149,18 +164,25 @@ const Transactions = () => {
     },
   ];
 
-  const actions = (transaction) => {
-    if (!transaction.returnDate) {
-      return (
+  const renderActions = (transaction) => {
+    return (
+      <div className="flex space-x-2">
         <button
-          onClick={() => handleReturn(transaction.id)}
-          className="text-green-600 hover:text-green-900"
+          onClick={() => handleViewDetails(transaction)}
+          className="text-blue-600 hover:text-blue-900"
         >
-          Return
+          Details
         </button>
-      );
-    }
-    return null;
+        {!transaction.returnDate && (
+          <button
+            onClick={() => handleReturn(transaction.id)}
+            className="text-green-600 hover:text-green-900"
+          >
+            Return
+          </button>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -217,7 +239,7 @@ const Transactions = () => {
         <DataTable
           columns={columns}
           data={filteredTransactions}
-          actions={actions}
+          actions={renderActions}
         />
       )}
 
@@ -243,14 +265,148 @@ const Transactions = () => {
             <button
               onClick={() => setShowReturnModal(false)}
               className="btn btn-secondary"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
-            <button onClick={handleReturnSubmit} className="btn btn-primary">
-              Return
+            <button
+              onClick={handleReturnSubmit}
+              className="btn btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : "Return"}
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Transaction Details Modal */}
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title="Transaction Details"
+      >
+        {currentTransaction && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">
+                  Book Information
+                </h3>
+                <div className="mt-2 bg-gray-50 p-3 rounded-md">
+                  <p className="font-medium">{currentTransaction.book.title}</p>
+                  <p className="text-sm text-gray-600">
+                    Author: {currentTransaction.book.author}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    ISBN: {currentTransaction.book.isbn}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">
+                  Member Information
+                </h3>
+                <div className="mt-2 bg-gray-50 p-3 rounded-md">
+                  <p className="font-medium">
+                    {currentTransaction.member.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    ID: {currentTransaction.member.memberId}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Email: {currentTransaction.member.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">
+                Transaction Details
+              </h3>
+              <div className="mt-2 bg-gray-50 p-3 rounded-md">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-sm text-gray-600">Transaction ID:</p>
+                    <p className="font-medium">{currentTransaction.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Status:</p>
+                    <p className="font-medium">
+                      {currentTransaction.returnDate
+                        ? "Returned"
+                        : new Date(currentTransaction.dueDate) < new Date()
+                        ? "Overdue"
+                        : "Borrowed"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Borrow Date:</p>
+                    <p className="font-medium">
+                      {new Date(
+                        currentTransaction.borrowDate
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Due Date:</p>
+                    <p className="font-medium">
+                      {new Date(
+                        currentTransaction.dueDate
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Return Date:</p>
+                    <p className="font-medium">
+                      {currentTransaction.returnDate
+                        ? new Date(
+                            currentTransaction.returnDate
+                          ).toLocaleDateString()
+                        : "Not returned"}
+                    </p>
+                  </div>
+                  {!currentTransaction.returnDate &&
+                    new Date(currentTransaction.dueDate) < new Date() && (
+                      <div>
+                        <p className="text-sm text-gray-600">Days Overdue:</p>
+                        <p className="font-medium text-red-600">
+                          {Math.floor(
+                            (new Date() -
+                              new Date(currentTransaction.dueDate)) /
+                              (1000 * 60 * 60 * 24)
+                          )}
+                        </p>
+                      </div>
+                    )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t">
+              {!currentTransaction.returnDate && (
+                <button
+                  onClick={() => {
+                    setReturnId(currentTransaction.id);
+                    setShowDetailsModal(false);
+                    setShowReturnModal(true);
+                  }}
+                  className="btn btn-primary mr-2"
+                >
+                  Return Book
+                </button>
+              )}
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="btn btn-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

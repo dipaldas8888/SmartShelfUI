@@ -59,9 +59,8 @@ export const transactionsApi = {
   getByBook: (bookId) => api.get(`/transactions/book/${bookId}`),
   getOverdue: () => api.get("/transactions/overdue"),
   borrow: (data) => api.post("/transactions/borrow", data),
-  return: (data) => api.post("/transactions/return", data),
-  returnRequest: (transactionId) =>
-    api.post(`/transactions/return-request/${transactionId}`),
+  // Update this method to match your backend API
+  return: (id) => api.put(`/transactions/return/${id}`),
 };
 
 // Upload API
