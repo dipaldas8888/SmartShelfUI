@@ -3,11 +3,10 @@ import React from "react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-const DataTable = ({ columns, data, linkPath, onEdit, onDelete }) => {
+const DataTable = ({ columns, data, linkPath, onEdit, onDelete, actions }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);

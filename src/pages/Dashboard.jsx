@@ -5,13 +5,33 @@ import { Link } from "react-router-dom";
 import { booksApi, membersApi, transactionsApi } from "../services/api";
 import StatsCard from "../components/StatsCard";
 import Alert from "../components/Alert";
+import AddEditBookModal from "../components/AddEditBookModal";
+import AddEditMemberModal from "../components/AddEditMemberModal";
 
 const Dashboard = () => {
+  const [showModal, setShowModal] = useState(false);
+  const [currentBook, setCurrentBook] = useState({
+    title: "",
+    author: "",
+    isbn: "",
+    publicationYear: "",
+    quantity: "",
+    availableQuantity: "",
+  });
+  const [isEditing, setIsEditing] = useState(false);
+
   const [stats, setStats] = useState({
     totalBooks: 0,
     totalMembers: 0,
     totalTransactions: 0,
     overdueBooks: 0,
+  });
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [currentMember, setCurrentMember] = useState({
+    memberId: "",
+    name: "",
+    email: "",
+    status: "ACTIVE",
   });
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +80,75 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  const handleMemberChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentMember((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Add member handlers
+  const handleAddMember = () => {
+    setCurrentMember({
+      memberId: "",
+      name: "",
+      email: "",
+      status: "ACTIVE",
+    });
+    setShowMemberModal(true);
+  };
+
+  const handleMemberSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await membersApi.create(currentMember);
+      setShowMemberModal(false);
+      // Refresh dashboard data
+      fetchDashboardData();
+    } catch (err) {
+      console.error("Error saving member:", err);
+    }
+  };
+  const handleAdd = () => {
+    setCurrentBook({
+      title: "",
+      author: "",
+      isbn: "",
+      publicationYear: "",
+      quantity: "",
+      availableQuantity: "",
+    });
+    setIsEditing(false);
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (isEditing) {
+        const response = await booksApi.update(currentBook.id, currentBook);
+        const updatedBook = response.data;
+        setBooks(
+          books.map((book) => (book.id === updatedBook.id ? updatedBook : book))
+        );
+        setAlert({ type: "success", message: "Book updated successfully" });
+      } else {
+        const response = await booksApi.create(currentBook);
+        const newBook = response.data;
+        setBooks([...books, newBook]);
+        setAlert({ type: "success", message: "Book added successfully" });
+      }
+      setShowModal(false);
+    } catch (err) {
+      console.error("Error saving book:", err);
+      setAlert({ type: "error", message: "Failed to save book" });
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentBook((prev) => ({ ...prev, [name]: value }));
+  };
 
   return (
     <div className="space-y-6">
@@ -246,9 +335,10 @@ const Dashboard = () => {
         <div className="card">
           <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 gap-4">
-            <Link
-              to="/books/add"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+            <button
+              // to="/books"
+              onClick={() => handleAddMember()}
+              className="flex items-center p-4 border cursor-pointer border-gray-200 rounded-lg hover:bg-gray-50"
             >
               <svg
                 className="h-6 w-6 text-blue-500 mr-3"
@@ -264,9 +354,10 @@ const Dashboard = () => {
                 />
               </svg>
               <span>Add New Book</span>
-            </Link>
-            <Link
-              to="/members/add"
+            </button>
+            <button
+              // to="/members"
+              onClick={() => handleAdd()}
               className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               <svg
@@ -283,9 +374,10 @@ const Dashboard = () => {
                 />
               </svg>
               <span>Register New Member</span>
-            </Link>
+            </button>
             <Link
-              to="/transactions/new"
+              to="/transactions"
+              onClick={() => handleBorrow()}
               className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               <svg
@@ -306,6 +398,23 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <AddEditBookModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        isEditing={isEditing}
+        handleSubmit={handleSubmit}
+        handleChange={handleChange}
+        currentBook={currentBook}
+      />
+      <AddEditMemberModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        isEditing={isEditing}
+        handleSubmit={handleSubmit}
+        handleChange={handleChange}
+        currentMember={currentMember}
+      />
     </div>
   );
 };

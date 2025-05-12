@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// Create axios instance
 export const api = axios.create({
   baseURL: "http://localhost:8080/api",
   headers: {
@@ -61,6 +60,7 @@ export const transactionsApi = {
   getOverdue: () => api.get("/transactions/overdue"),
   borrow: (data) => api.post("/transactions/borrow", data),
   return: (data) => api.post("/transactions/return", data),
+  return: (transactionId) => api.put(`/transactions/return/${transactionId}`),
 };
 
 // Upload API

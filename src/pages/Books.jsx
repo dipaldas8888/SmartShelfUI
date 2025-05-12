@@ -5,6 +5,7 @@ import { booksApi } from "../services/api";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Alert from "../components/Alert";
+import AddEditBookModal from "../components/AddEditBookModal";
 
 const Books = () => {
   const [books, setBooks] = useState([]);
@@ -83,7 +84,12 @@ const Books = () => {
         setAlert({ type: "success", message: "Book deleted successfully" });
       } catch (err) {
         console.error("Error deleting book:", err);
-        setAlert({ type: "error", message: "Failed to delete book" });
+        setAlert({
+          type: "error",
+          message: `Failed to delete book: ${
+            err.response?.data?.message || err.message
+          }`,
+        });
       }
     }
   };
@@ -190,7 +196,16 @@ const Books = () => {
         />
       )}
 
-      <Modal
+      <AddEditBookModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        isEditing={isEditing}
+        handleSubmit={handleSubmit}
+        handleChange={handleChange}
+        currentBook={currentBook}
+      />
+
+      {/* <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={isEditing ? "Edit Book" : "Add Book"}
@@ -319,7 +334,7 @@ const Books = () => {
             </button>
           </div>
         </form>
-      </Modal>
+      </Modal> */}
     </div>
   );
 };
