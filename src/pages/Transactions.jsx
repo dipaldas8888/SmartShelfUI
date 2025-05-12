@@ -1,27 +1,19 @@
+import React from "react";
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { transactionsApi, booksApi, membersApi } from "../services/api";
+import { transactionsApi } from "../services/api";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Alert from "../components/Alert";
-import { useNavigate } from "react-router-dom";
-import React from "react";
+import TransactionFormModal from "../components/TransactionFormModal";
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
-  const [books, setBooks] = useState([]);
-  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
-  const [currentTransaction, setCurrentTransaction] = useState({
-    bookId: "",
-    memberId: "",
-    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0], // 14 days from now
-  });
   const [returnId, setReturnId] = useState(null);
   const [alert, setAlert] = useState({ type: "", message: "" });
   const [filter, setFilter] = useState("all"); // 'all', 'borrowed', 'returned', 'overdue'
@@ -33,15 +25,8 @@ const Transactions = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [transactionsRes, booksRes, membersRes] = await Promise.all([
-        transactionsApi.getAll(),
-        booksApi.getAll(),
-        membersApi.getAll(),
-      ]);
-
+      const transactionsRes = await transactionsApi.getAll();
       setTransactions(transactionsRes.data);
-      setBooks(booksRes.data);
-      setMembers(membersRes.data);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -50,38 +35,9 @@ const Transactions = () => {
     }
   };
 
-  const handleBorrow = () => {
-    setCurrentTransaction({
-      bookId: "",
-      memberId: "",
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-    });
-    setShowBorrowModal(true);
-  };
-
   const handleReturn = (transactionId) => {
     setReturnId(transactionId);
     setShowReturnModal(true);
-  };
-
-  const handleBorrowSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      const response = await transactionsApi.borrow({
-        ...currentTransaction,
-        dueDate: new Date(currentTransaction.dueDate).toISOString(),
-      });
-
-      setTransactions([...transactions, response.data]);
-      setAlert({ type: "success", message: "Book borrowed successfully" });
-      setShowBorrowModal(false);
-    } catch (err) {
-      console.error("Error borrowing book:", err);
-      setAlert({ type: "error", message: "Failed to borrow book" });
-    }
   };
 
   const handleReturnSubmit = async () => {
@@ -101,9 +57,9 @@ const Transactions = () => {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentTransaction((prev) => ({ ...prev, [name]: value }));
+  const handleAddTransactionSuccess = (newTransaction) => {
+    setTransactions([...transactions, newTransaction]);
+    setAlert({ type: "success", message: "Book borrowed successfully" });
   };
 
   const handleFilterChange = (e) => {
@@ -210,7 +166,7 @@ const Transactions = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="loader">Loading...</div>
+        <div className="loader"></div>
       </div>
     );
   }
@@ -220,8 +176,8 @@ const Transactions = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Transactions</h1>
         <button
-          onClick={handleBorrow}
-          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          onClick={() => setShowBorrowModal(true)}
+          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Borrow Book
         </button>
@@ -266,98 +222,11 @@ const Transactions = () => {
       )}
 
       {/* Borrow Modal */}
-      <Modal
+      <TransactionFormModal
         isOpen={showBorrowModal}
         onClose={() => setShowBorrowModal(false)}
-        title="Borrow Book"
-      >
-        <form onSubmit={handleBorrowSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="bookId"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Book
-            </label>
-            <select
-              id="bookId"
-              name="bookId"
-              required
-              className="form-input"
-              value={currentTransaction.bookId}
-              onChange={handleChange}
-            >
-              <option value="">Select Book</option>
-              {books
-                .filter((book) => book.availableQuantity > 0)
-                .map((book) => (
-                  <option key={book.id} value={book.id}>
-                    {book.title} by {book.author} ({book.availableQuantity}{" "}
-                    available)
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="memberId"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Member
-            </label>
-            <select
-              id="memberId"
-              name="memberId"
-              required
-              className="form-input"
-              value={currentTransaction.memberId}
-              onChange={handleChange}
-            >
-              <option value="">Select Member</option>
-              {members
-                .filter((member) => member.status === "ACTIVE")
-                .map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name} ({member.memberId})
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="dueDate"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Due Date
-            </label>
-            <input
-              type="date"
-              id="dueDate"
-              name="dueDate"
-              required
-              className="form-input"
-              min={new Date().toISOString().split("T")[0]}
-              value={currentTransaction.dueDate}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => setShowBorrowModal(false)}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Borrow
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSuccess={handleAddTransactionSuccess}
+      />
 
       {/* Return Modal */}
       <Modal

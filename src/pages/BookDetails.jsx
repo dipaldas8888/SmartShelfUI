@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { booksApi, transactionsApi } from "../services/api";
 import Alert from "../components/Alert";
 import DataTable from "../components/DataTable";
+import BookFormModal from "../components/BookFormModal";
 
 const BookDetails = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const BookDetails = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const fetchBookData = async () => {
@@ -42,7 +44,13 @@ const BookDetails = () => {
   };
 
   const handleEdit = () => {
-    navigate(`/books/edit/${id}`);
+    setShowEditModal(true);
+  };
+
+  // Add handleEditSuccess function
+  const handleEditSuccess = (updatedBook) => {
+    setBook(updatedBook);
+    setShowEditModal(false);
   };
 
   const transactionColumns = [
@@ -217,6 +225,13 @@ const BookDetails = () => {
           <p className="text-gray-500">No transaction history for this book</p>
         )}
       </div>
+      <BookFormModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={handleEditSuccess}
+        isEditing={true}
+        currentBook={book}
+      />
     </div>
   );
 };

@@ -60,7 +60,8 @@ export const transactionsApi = {
   getOverdue: () => api.get("/transactions/overdue"),
   borrow: (data) => api.post("/transactions/borrow", data),
   return: (data) => api.post("/transactions/return", data),
-  return: (transactionId) => api.put(`/transactions/return/${transactionId}`),
+  returnRequest: (transactionId) =>
+    api.post(`/transactions/return-request/${transactionId}`),
 };
 
 // Upload API

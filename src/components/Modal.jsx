@@ -1,7 +1,8 @@
-import React from "react";
+"use client";
 
 import { useEffect, useRef } from "react";
-
+import { createPortal } from "react-dom";
+import React from "react";
 const Modal = ({ isOpen, onClose, title, children }) => {
   const modalRef = useRef(null);
 
@@ -14,27 +15,33 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden"; // Prevent scrolling when modal is open
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = ""; // Restore scrolling when modal closes
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      onClick={() => onClose()}
+    >
       <div
         ref={modalRef}
-        className="relative bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-auto"
+        className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h3 className="text-lg font-medium">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 focus:outline-none"
+            className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full p-1"
+            aria-label="Close"
           >
             <svg
               className="h-6 w-6"
@@ -51,9 +58,10 @@ const Modal = ({ isOpen, onClose, title, children }) => {
             </svg>
           </button>
         </div>
-        <div className="px-6 py-4">{children}</div>
+        <div className="px-6 py-4 bg-white">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

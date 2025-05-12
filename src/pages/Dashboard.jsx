@@ -5,154 +5,144 @@ import { Link } from "react-router-dom";
 import { booksApi, membersApi, transactionsApi } from "../services/api";
 import StatsCard from "../components/StatsCard";
 import Alert from "../components/Alert";
-import AddEditBookModal from "../components/AddEditBookModal";
-import AddEditMemberModal from "../components/AddEditMemberModal";
+import BookFormModal from "../components/BookFormModal";
+import MemberFormModal from "../components/MemberFormModal";
+import TransactionFormModal from "../components/TransactionFormModal";
 
 const Dashboard = () => {
-  const [showModal, setShowModal] = useState(false);
-  const [currentBook, setCurrentBook] = useState({
-    title: "",
-    author: "",
-    isbn: "",
-    publicationYear: "",
-    quantity: "",
-    availableQuantity: "",
-  });
-  const [isEditing, setIsEditing] = useState(false);
-
   const [stats, setStats] = useState({
     totalBooks: 0,
     totalMembers: 0,
     totalTransactions: 0,
     overdueBooks: 0,
   });
-  const [showMemberModal, setShowMemberModal] = useState(false);
-  const [currentMember, setCurrentMember] = useState({
-    memberId: "",
-    name: "",
-    email: "",
-    status: "ACTIVE",
-  });
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddBookModal, setShowAddBookModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [alert, setAlert] = useState({ type: "", message: "" });
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const [booksRes, membersRes, transactionsRes, overdueRes] =
-          await Promise.all([
-            booksApi.getAll(),
-            membersApi.getAll(),
-            transactionsApi.getAll(),
-            transactionsApi.getOverdue(),
-          ]);
-
-        setStats({
-          totalBooks: booksRes.data.length,
-          totalMembers: membersRes.data.length,
-          totalTransactions: transactionsRes.data.length,
-          overdueBooks: overdueRes.data.length,
-        });
-
-        // Get the most recent 5 transactions
-        const sortedTransactions = transactionsRes.data
-          .sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate))
-          .slice(0, 5);
-
-        setRecentTransactions(sortedTransactions);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-        setError("Failed to load dashboard data");
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [booksRes, membersRes, transactionsRes, overdueRes] =
+        await Promise.all([
+          booksApi.getAll(),
+          membersApi.getAll(),
+          transactionsApi.getAll(),
+          transactionsApi.getOverdue(),
+        ]);
+
+      setStats({
+        totalBooks: booksRes.data.length,
+        totalMembers: membersRes.data.length,
+        totalTransactions: transactionsRes.data.length,
+        overdueBooks: overdueRes.data.length,
+      });
+
+      // Get the most recent 5 transactions
+      const sortedTransactions = transactionsRes.data
+        .sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate))
+        .slice(0, 5);
+
+      setRecentTransactions(sortedTransactions);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError("Failed to load dashboard data");
+      setLoading(false);
+    }
+  };
+
+  const handleAddBookSuccess = (newBook) => {
+    // Update stats
+    setStats((prev) => ({
+      ...prev,
+      totalBooks: prev.totalBooks + 1,
+    }));
+
+    // Show success message
+    setAlert({
+      type: "success",
+      message: `Book "${newBook.title}" has been added successfully.`,
+    });
+
+    // Clear alert after 5 seconds
+    setTimeout(() => {
+      setAlert({ type: "", message: "" });
+    }, 5000);
+  };
+
+  const handleAddMemberSuccess = (newMember) => {
+    // Update stats
+    setStats((prev) => ({
+      ...prev,
+      totalMembers: prev.totalMembers + 1,
+    }));
+
+    // Show success message
+    setAlert({
+      type: "success",
+      message: `Member "${newMember.name}" has been added successfully.`,
+    });
+
+    // Clear alert after 5 seconds
+    setTimeout(() => {
+      setAlert({ type: "", message: "" });
+    }, 5000);
+  };
+
+  const handleAddTransactionSuccess = (newTransaction) => {
+    // Update stats
+    setStats((prev) => ({
+      ...prev,
+      totalTransactions: prev.totalTransactions + 1,
+    }));
+
+    // Update recent transactions
+    const bookTitle = newTransaction.book?.title || "Book";
+    const memberName = newTransaction.member?.name || "Member";
+
+    // Show success message
+    setAlert({
+      type: "success",
+      message: `"${bookTitle}" has been borrowed by ${memberName} successfully.`,
+    });
+
+    // Refresh dashboard data to get updated transactions
+    fetchDashboardData();
+
+    // Clear alert after 5 seconds
+    setTimeout(() => {
+      setAlert({ type: "", message: "" });
+    }, 5000);
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="loader">Loading...</div>
+        <div className="loader"></div>
       </div>
     );
   }
 
-  const handleMemberChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentMember((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Add member handlers
-  const handleAddMember = () => {
-    setCurrentMember({
-      memberId: "",
-      name: "",
-      email: "",
-      status: "ACTIVE",
-    });
-    setShowMemberModal(true);
-  };
-
-  const handleMemberSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await membersApi.create(currentMember);
-      setShowMemberModal(false);
-      // Refresh dashboard data
-      fetchDashboardData();
-    } catch (err) {
-      console.error("Error saving member:", err);
-    }
-  };
-  const handleAdd = () => {
-    setCurrentBook({
-      title: "",
-      author: "",
-      isbn: "",
-      publicationYear: "",
-      quantity: "",
-      availableQuantity: "",
-    });
-    setIsEditing(false);
-    setShowModal(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      if (isEditing) {
-        const response = await booksApi.update(currentBook.id, currentBook);
-        const updatedBook = response.data;
-        setBooks(
-          books.map((book) => (book.id === updatedBook.id ? updatedBook : book))
-        );
-        setAlert({ type: "success", message: "Book updated successfully" });
-      } else {
-        const response = await booksApi.create(currentBook);
-        const newBook = response.data;
-        setBooks([...books, newBook]);
-        setAlert({ type: "success", message: "Book added successfully" });
-      }
-      setShowModal(false);
-    } catch (err) {
-      console.error("Error saving book:", err);
-      setAlert({ type: "error", message: "Failed to save book" });
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentBook((prev) => ({ ...prev, [name]: value }));
-  };
-
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {alert.message && (
+        <Alert
+          type={alert.type}
+          message={alert.message}
+          onClose={() => setAlert({ type: "", message: "" })}
+        />
+      )}
 
       {error && <Alert type="error" message={error} />}
 
@@ -336,9 +326,8 @@ const Dashboard = () => {
           <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 gap-4">
             <button
-              // to="/books"
-              onClick={() => handleAddMember()}
-              className="flex items-center p-4 border cursor-pointer border-gray-200 rounded-lg hover:bg-gray-50"
+              onClick={() => setShowAddBookModal(true)}
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg
                 className="h-6 w-6 text-blue-500 mr-3"
@@ -356,9 +345,8 @@ const Dashboard = () => {
               <span>Add New Book</span>
             </button>
             <button
-              // to="/members"
-              onClick={() => handleAdd()}
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+              onClick={() => setShowAddMemberModal(true)}
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg
                 className="h-6 w-6 text-green-500 mr-3"
@@ -375,10 +363,9 @@ const Dashboard = () => {
               </svg>
               <span>Register New Member</span>
             </button>
-            <Link
-              to="/transactions"
-              onClick={() => handleBorrow()}
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+            <button
+              onClick={() => setShowAddTransactionModal(true)}
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg
                 className="h-6 w-6 text-purple-500 mr-3"
@@ -394,26 +381,27 @@ const Dashboard = () => {
                 />
               </svg>
               <span>Record New Transaction</span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
 
-      <AddEditBookModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        isEditing={isEditing}
-        handleSubmit={handleSubmit}
-        handleChange={handleChange}
-        currentBook={currentBook}
+      <BookFormModal
+        isOpen={showAddBookModal}
+        onClose={() => setShowAddBookModal(false)}
+        onSuccess={handleAddBookSuccess}
       />
-      <AddEditMemberModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        isEditing={isEditing}
-        handleSubmit={handleSubmit}
-        handleChange={handleChange}
-        currentMember={currentMember}
+
+      <MemberFormModal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        onSuccess={handleAddMemberSuccess}
+      />
+
+      <TransactionFormModal
+        isOpen={showAddTransactionModal}
+        onClose={() => setShowAddTransactionModal(false)}
+        onSuccess={handleAddTransactionSuccess}
       />
     </div>
   );

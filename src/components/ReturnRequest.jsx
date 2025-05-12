@@ -13,7 +13,7 @@ const ReturnRequest = ({ transactionId, onSuccess }) => {
       setLoading(true);
       setError(null);
 
-      await transactionsApi.return({ id: transactionId });
+      await transactionsApi.return(transactionId);
 
       if (onSuccess) {
         onSuccess();

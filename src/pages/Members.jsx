@@ -1,24 +1,19 @@
 import React from "react";
-import AddEditMemberModal from "../components/AddEditMemberModal";
 
 import { useState, useEffect } from "react";
 import { membersApi } from "../services/api";
 import DataTable from "../components/DataTable";
-import Modal from "../components/Modal";
 import Alert from "../components/Alert";
+import MemberFormModal from "../components/MemberFormModal";
+import EditMemberModal from "../components/EditMemberModal";
 
 const Members = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [currentMember, setCurrentMember] = useState({
-    memberId: "",
-    name: "",
-    email: "",
-    status: "ACTIVE",
-  });
-  const [isEditing, setIsEditing] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentMember, setCurrentMember] = useState(null);
   const [alert, setAlert] = useState({ type: "", message: "" });
 
   useEffect(() => {
@@ -40,19 +35,7 @@ const Members = () => {
 
   const handleEdit = (member) => {
     setCurrentMember(member);
-    setIsEditing(true);
-    setShowModal(true);
-  };
-
-  const handleAdd = () => {
-    setCurrentMember({
-      memberId: "",
-      name: "",
-      email: "",
-      status: "ACTIVE",
-    });
-    setIsEditing(false);
-    setShowModal(true);
+    setShowEditModal(true);
   };
 
   const handleDelete = async (id) => {
@@ -63,48 +46,23 @@ const Members = () => {
         setAlert({ type: "success", message: "Member deleted successfully" });
       } catch (err) {
         console.error("Error deleting member:", err);
-        setAlert({
-          type: "error",
-          message: `Failed to delete book: ${
-            err.response?.data?.message || err.message
-          }`,
-        });
+        setAlert({ type: "error", message: "Failed to delete member" });
       }
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      if (isEditing) {
-        const response = await membersApi.update(
-          currentMember.id,
-          currentMember
-        );
-        const updatedMember = response.data;
-        setMembers(
-          members.map((member) =>
-            member.id === updatedMember.id ? updatedMember : member
-          )
-        );
-        setAlert({ type: "success", message: "Member updated successfully" });
-      } else {
-        const response = await membersApi.create(currentMember);
-        const newMember = response.data;
-        setMembers([...members, newMember]);
-        setAlert({ type: "success", message: "Member added successfully" });
-      }
-      setShowModal(false);
-    } catch (err) {
-      console.error("Error saving member:", err);
-      setAlert({ type: "error", message: "Failed to save member" });
-    }
+  const handleAddMemberSuccess = (newMember) => {
+    setMembers([...members, newMember]);
+    setAlert({ type: "success", message: "Member added successfully" });
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentMember((prev) => ({ ...prev, [name]: value }));
+  const handleEditMemberSuccess = (updatedMember) => {
+    setMembers(
+      members.map((member) =>
+        member.id === updatedMember.id ? updatedMember : member
+      )
+    );
+    setAlert({ type: "success", message: "Member updated successfully" });
   };
 
   const columns = [
@@ -125,6 +83,8 @@ const Members = () => {
           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
             member.status === "ACTIVE"
               ? "bg-green-100 text-green-800"
+              : member.status === "INACTIVE"
+              ? "bg-gray-100 text-gray-800"
               : "bg-red-100 text-red-800"
           }`}
         >
@@ -137,7 +97,7 @@ const Members = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="loader">Loading...</div>
+        <div className="loader"></div>
       </div>
     );
   }
@@ -147,8 +107,8 @@ const Members = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Members</h1>
         <button
-          onClick={handleAdd}
-          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          onClick={() => setShowAddModal(true)}
+          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Add Member
         </button>
@@ -174,13 +134,17 @@ const Members = () => {
         />
       )}
 
-      <AddEditMemberModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        isEditing={isEditing}
-        handleSubmit={handleSubmit}
-        handleChange={handleChange}
-        currentMember={currentMember}
+      <MemberFormModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleAddMemberSuccess}
+      />
+
+      <EditMemberModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        member={currentMember}
+        onSuccess={handleEditMemberSuccess}
       />
     </div>
   );

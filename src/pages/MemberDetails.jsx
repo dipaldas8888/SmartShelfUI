@@ -5,10 +5,13 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { membersApi, transactionsApi } from "../services/api";
 import Alert from "../components/Alert";
 import DataTable from "../components/DataTable";
+import EditMemberModal from "../components/EditMemberModal";
 
 const MemberDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [alert, setAlert] = useState({ type: "", message: "" });
 
   const [member, setMember] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -36,13 +39,18 @@ const MemberDetails = () => {
 
     fetchMemberData();
   }, [id]);
+  const handleEdit = () => {
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = (updatedMember) => {
+    setMember(updatedMember);
+    setAlert({ type: "success", message: "Member updated successfully" });
+    setShowEditModal(false);
+  };
 
   const handleBack = () => {
     navigate("/members");
-  };
-
-  const handleEdit = () => {
-    navigate(`/members/edit/${id}`);
   };
 
   const transactionColumns = [
@@ -215,6 +223,12 @@ const MemberDetails = () => {
           </p>
         )}
       </div>
+      <EditMemberModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        member={member}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 };

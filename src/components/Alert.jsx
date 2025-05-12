@@ -1,26 +1,61 @@
 import React from "react";
-const Alert = ({ type, message, onClose }) => {
+
+import { useEffect, useState } from "react";
+
+const Alert = ({
+  type,
+  message,
+  onClose,
+  autoClose = true,
+  duration = 5000,
+}) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!message) return;
+
+    setIsVisible(true);
+
+    if (autoClose) {
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 300); // Wait for fade out animation
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [message, autoClose, duration, onClose]);
+
   if (!message) return null;
 
   const alertClasses = {
-    success: "bg-green-100 border-green-500 text-green-700",
-    error: "bg-red-100 border-red-500 text-red-700",
-    warning: "bg-yellow-100 border-yellow-500 text-yellow-700",
-    info: "bg-blue-100 border-blue-500 text-blue-700",
+    success: "bg-green-50 border-green-500 text-green-700",
+    error: "bg-red-50 border-red-500 text-red-700",
+    warning: "bg-yellow-50 border-yellow-500 text-yellow-700",
+    info: "bg-blue-50 border-blue-500 text-blue-700",
+  };
+
+  const iconClasses = {
+    success: "text-green-500",
+    error: "text-red-500",
+    warning: "text-yellow-500",
+    info: "text-blue-500",
   };
 
   return (
     <div
-      className={`border-l-4 p-4 mb-4 ${
-        alertClasses[type] || alertClasses.info
-      }`}
+      className={`border-l-4 p-4 mb-4 rounded-r-md shadow-sm transition-opacity duration-300 ${
+        isVisible ? "opacity-100" : "opacity-0"
+      } ${alertClasses[type] || alertClasses.info}`}
       role="alert"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           {type === "success" && (
             <svg
-              className="h-5 w-5 mr-2"
+              className={`h-5 w-5 mr-2 ${iconClasses.success}`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -33,7 +68,7 @@ const Alert = ({ type, message, onClose }) => {
           )}
           {type === "error" && (
             <svg
-              className="h-5 w-5 mr-2"
+              className={`h-5 w-5 mr-2 ${iconClasses.error}`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -46,7 +81,7 @@ const Alert = ({ type, message, onClose }) => {
           )}
           {type === "warning" && (
             <svg
-              className="h-5 w-5 mr-2"
+              className={`h-5 w-5 mr-2 ${iconClasses.warning}`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -59,7 +94,7 @@ const Alert = ({ type, message, onClose }) => {
           )}
           {type === "info" && (
             <svg
-              className="h-5 w-5 mr-2"
+              className={`h-5 w-5 mr-2 ${iconClasses.info}`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -70,10 +105,17 @@ const Alert = ({ type, message, onClose }) => {
               />
             </svg>
           )}
-          <p>{message}</p>
+          <p className="text-sm font-medium">{message}</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="ml-auto focus:outline-none">
+          <button
+            onClick={() => {
+              setIsVisible(false);
+              setTimeout(() => onClose(), 300);
+            }}
+            className="ml-auto focus:outline-none focus:ring-2 focus:ring-gray-400 rounded-full p-1 hover:bg-gray-200 transition-colors duration-200"
+            aria-label="Close"
+          >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
